@@ -1,2 +1,2 @@
 # collusion
-RF agents learn how to manipulate the market
+RL agents learn how to manipulate the market
