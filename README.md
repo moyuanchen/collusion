@@ -1,2 +1,2 @@
 # collusion
-my master thesis
+RF agents learn how to manipulate the market
