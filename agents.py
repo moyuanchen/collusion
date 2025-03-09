@@ -277,7 +277,7 @@ class AdaptiveMarketMaker:
         """
         for var, value in zip(self.vars_, [vt, pt, zt, yt]):
             self.historical_data[var].add(value)
-'test'
+
 class NoiseAgent:
     def __init__(self, config):
         self.sigma = config.sigma_u
