@@ -3,7 +3,7 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # Environment Parameters
-    I: int = 3              # Number of Collusive Agents
+    I: int = 2              # Number of Collusive Agents
     v_bar: float = 1        # Mean Value of the security
     sigma_v: float = 1      # Standard deviation of the security value
 
@@ -27,5 +27,5 @@ class Config:
 
     # Noise Traders Parameters
     u_bar: float = 0        # Mean noise trade volume
-    sigma_u: float = 1      # Standard deviation of the noise trade volume
+    sigma_u: float = 0.1      # Standard deviation of the noise trade volume
 
