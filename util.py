@@ -111,8 +111,10 @@ def simulate(
 
         z_hist[t+t0] = zt
 
-        market_maker.update(_v, _p, zt, yt_sum)
         pt = market_maker.determine_price(yt_sum)
+        
+        market_maker.update(_v, _p, zt, yt_sum)
+        
         vt = get_next_v()
         next_state = informed_agents[0].continuous_to_discrete(pt, vt)
         for idx, agent in enumerate(informed_agents):

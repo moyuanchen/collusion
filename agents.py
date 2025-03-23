@@ -28,7 +28,7 @@ def solve_chiN(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000):
 
         # Then the updated chi^N:
         new_chi = 1.0 / ((I + 1) * lam)
-
+        print(new_chi)
         if abs(new_chi - chi) < tol:
             return new_chi, lam
         chi = new_chi
@@ -51,7 +51,7 @@ def solve_chiM(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000):
         gamma = (I * chi) / ((I * chi)**2 + (sigma_u / sigma_v)**2)
         lam = (theta * gamma + xi) / (theta + xi**2)
         new_chi = 1.0 / (2.0 * I * lam)
-
+        print(new_chi)
         if abs(new_chi - chi) < tol:
             return new_chi, lam
         chi = new_chi
