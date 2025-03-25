@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from util import solve_chiM, solve_chiN
 
 @dataclass
 class Config:
@@ -28,4 +29,12 @@ class Config:
     # Noise Traders Parameters
     u_bar: float = 0        # Mean noise trade volume
     sigma_u: float = 0.1      # Standard deviation of the noise trade volume
+
+    # Calculate lambda and chi using solve_chiM and solve_chiN
+    chi_M: float
+    lambda_M: float
+    chi_N: float
+    lambda_N: float
+    chi_M, lambda_M = solve_chiM(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000)
+    chi_N, lambda_N = solve_chiN(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000)
 

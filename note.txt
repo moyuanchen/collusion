@@ -1,0 +1,3 @@
+2025 03 24
+Profit higher than maximum theoretical possible in Kyle et al.
+Possible explaination: unconstrained agent actions
