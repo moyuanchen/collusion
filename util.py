@@ -98,13 +98,13 @@ def simulate_constrained(
         _x = []
 
         # generate a grid from x_n to x_m each step
-        x_n, x_m = config.chi_n * _v, config.chi_m * _v
+        x_n, x_m = config.chi_N * _v, config.chi_M * _v
         x_diff = abs(x_m - x_n)
         if _v > config.v_bar:
             x_disc = np.linspace(x_m - config.iota * x_diff, x_n + config.iota * x_diff, config.Nx)
         else:
             x_disc = np.linspace(x_n - config.iota * x_diff, x_m + config.iota * x_diff, config.Nx)
-        print(x_disc)
+        # print(x_disc)
 
         for idx, agent in enumerate(informed_agents):
             x = agent.get_action(_state)
