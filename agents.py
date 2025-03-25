@@ -2,8 +2,61 @@ import numpy as np
 import torch
 from itertools import product
 from collections import defaultdict
-from util import solve_chiN, solve_chiM
+# from util import solve_chiN, solve_chiM
+def solve_chiN(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000):
+    """
+    Solve for the noncollusive slope chi^N in the Kyle-type model.
 
+    We use the 3-equation system from Section 3.2 in the paper:
+      (1) chi^N = 1 / [(I+1)*lambda^N]
+      (2) lambda^N = [theta * gamma^N + xi] / (theta + xi^2)
+      (3) gamma^N = (I*chi^N) / [(I*chi^N)^2 + (sigma_u/sigma_v)^2]
+
+    We do simple fixed-point iteration over chi^N.
+
+    Returns:
+      float: chi^N
+      float: lambda^N
+    """
+    chi = 0.1  # Arbitrary initial guess
+    for _ in range(max_iter):
+        # Given chi, compute gamma^N:
+        gamma = (I * chi) / ((I * chi)**2 + (sigma_u / sigma_v)**2)
+
+        # Then lambda^N:
+        lam = (theta * gamma + xi) / (theta + xi**2)
+
+        # Then the updated chi^N:
+        new_chi = 1.0 / ((I + 1) * lam)
+        # print(new_chi)
+        if abs(new_chi - chi) < tol:
+            return new_chi, lam
+        chi = new_chi
+
+    raise RuntimeError("solve_chiN did not converge within max_iter")
+
+def solve_chiM(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000):
+    """
+    Solve for the *perfect-collusion* slope chi^M in the Kyle-type model.
+
+    From Section 3.3 in the paper:
+      (1) chi^M = 1 / [2*I * lambda^M]
+      (2) lambda^M = [theta * gamma^M + xi] / (theta + xi^2)
+      (3) gamma^M = (I*chi^M) / [(I*chi^M)^2 + (sigma_u/sigma_v)^2]
+
+    Similar fixed-point iteration as above.
+    """
+    chi = 0.1  # Arbitrary initial guess
+    for _ in range(max_iter):
+        gamma = (I * chi) / ((I * chi)**2 + (sigma_u / sigma_v)**2)
+        lam = (theta * gamma + xi) / (theta + xi**2)
+        new_chi = 1.0 / (2.0 * I * lam)
+        # print(new_chi)
+        if abs(new_chi - chi) < tol:
+            return new_chi, lam
+        chi = new_chi
+
+    raise RuntimeError("solve_chiM did not converge within max_iter")
 class Q_table:
 
     def __init__(self,

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from util import solve_chiM, solve_chiN
+from agents import solve_chiM, solve_chiN
 
 @dataclass
 class Config:
