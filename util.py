@@ -267,12 +267,12 @@ def simulate(
         u_hist[t+t0] = ut
         yt_sum = np.sum(yt) + ut
         # print(yt_sum)
-        zt = preferred_habitat_agent.get_action(_p)
-
-        z_hist[t+t0] = zt
+        
 
         pt = market_maker.determine_price(yt_sum)
-        
+        zt = preferred_habitat_agent.get_action(pt)
+
+        z_hist[t+t0] = zt
         market_maker.update(_v, _p, zt, yt_sum)
         
         vt = get_next_v()
