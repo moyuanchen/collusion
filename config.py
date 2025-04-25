@@ -1,5 +1,11 @@
 from dataclasses import dataclass
 from agents import solve_chiM, solve_chiN
+# import pickle
+import numpy as np
+def load(path):
+    config = np.load(path, allow_pickle=True).item()
+    return config
+
 
 @dataclass
 class Config:
