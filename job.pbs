@@ -4,4 +4,7 @@
 
 cd ${PBS_O_WORKDIR}
 
+source activate ~/miniforge3/etc/profile.d/conda.sh
+conda activate collusion
+
 python simulate.py
