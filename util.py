@@ -91,7 +91,7 @@ def simulate(
     if save_path is None:
         save_path = '/Users/moyuanchen/Documents/thesis/data.npy'
 
-    for t in range(T), desc="Simulation Progress":
+    for t in range(T):
         yt = []
         _p, _v = informed_agents[0].p_discrete[_state[0]], informed_agents[0].v_discrete[_state[1]]
         v_hist[t+t0] = _v
