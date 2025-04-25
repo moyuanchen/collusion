@@ -1,9 +1,17 @@
 from dataclasses import dataclass
 from agents import solve_chiM, solve_chiN
-# import pickle
+import pickle
 import numpy as np
+def save(path, config):
+    # np.save(path, config)
+    with open(path, 'wb') as f:
+        pickle.dump(config, f, pickle.HIGHEST_PROTOCOL)
+
 def load(path):
-    config = np.load(path, allow_pickle=True).item()
+    # Load the configuration dictionary and unpack into a Config object
+    with open(path, 'rb') as f:
+        config = pickle.load(f)
+
     return config
 
 
