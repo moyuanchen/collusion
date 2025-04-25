@@ -4,7 +4,8 @@
 
 cd ${PBS_O_WORKDIR}
 
-source activate ~/miniforge3/etc/profile.d/conda.sh
-conda activate collusion
+# make conda & python visible
+export PATH="$HOME/miniforge3/bin:$PATH"
+source ~/miniforge3/bin/activate collusion   # ← note single line
 
 python simulate.py
