@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -l walltime=01:00:00
 #PBS -l select=1:ncpus=1:mem=1gb
-#PBS -o ~/jobs/log/test_run.out
-#PBS -e ~/jobs/log/test_run.err
+#PBS -o /rds/general/user/mc4724/home/collusion/jobs/log/test_run.out
+#PBS -e /rds/general/user/mc4724/home/collusion/jobs/log/test_run.err
 
 cd ${PBS_O_WORKDIR}
 
