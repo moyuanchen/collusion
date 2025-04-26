@@ -2,7 +2,7 @@
 #PBS -l walltime=01:00:00
 #PBS -l select=1:ncpus=1:mem=1gb
 #PBS -j oe                       
-#PBS -o /$HOME/collusion/jobs/log/raw.$PBS_JOBID     
+#PBS -o /$HOME/collusion/jobs/log/sigma_u_10.log
 
 cd ${PBS_O_WORKDIR}
 
@@ -12,22 +12,4 @@ export PATH="$HOME/miniforge3/bin:$PATH"
 source ~/miniforge3/bin/activate collusion   # ← note single line
 
 
-# --- build final filename with date & comment ---
-stamp=$(date +%Y%m%d-%H%M)
-logdir=$HOME/collusion/jobs/log
-final="$logdir/collusion_${PBS_JOBID}_${stamp}.log"
-
-# redirect everything from here on
-exec >"$final" 2>&1
-
-echo "Log file: $final"
-
-
 python simulate.py
-
-# --- on normal or error exit, append PBS epilogue ----
-cleanup () {
-    cat /home/$USER/jobs/logs/raw.$PBS_JOBID >> "$final"
-    rm  /home/$USER/jobs/logs/raw.$PBS_JOBID
-}
-trap cleanup EXIT
