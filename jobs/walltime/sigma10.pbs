@@ -11,4 +11,4 @@ cd ${PBS_O_WORKDIR}
 export PATH="$HOME/miniforge3/bin:$PATH"
 source ~/miniforge3/bin/activate collusion   # ← note single line
 
-python simulate.py
+python simulate.py --sigma_u 10
