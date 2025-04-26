@@ -10,3 +10,4 @@ while counter < convergence_threshold:
                            save_path='/rds/general/user/mc4724/home/data/sigma_u_10')
     # Check if the agents have converged
     counter = min([agent.convergence_counter for agent in agents['informed']])
+    break
