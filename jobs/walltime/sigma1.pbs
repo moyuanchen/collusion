@@ -2,7 +2,7 @@
 #PBS -l walltime=01:00:00
 #PBS -l select=1:ncpus=1:mem=1gb
 #PBS -j oe                       
-#PBS -o /$HOME/collusion/jobs/log/sigma_u_10_$J.log
+#PBS -o /$HOME/collusion/jobs/log/sigma_u_10.log
 
 cd ${PBS_O_WORKDIR}
 
@@ -10,6 +10,5 @@ cd ${PBS_O_WORKDIR}
 # make conda & python visible
 export PATH="$HOME/miniforge3/bin:$PATH"
 source ~/miniforge3/bin/activate collusion   # ← note single line
-
 
 python simulate.py
