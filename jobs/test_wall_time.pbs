@@ -24,3 +24,10 @@ echo "Log file: $final"
 
 
 python simulate.py
+
+# --- on normal or error exit, append PBS epilogue ----
+cleanup () {
+    cat /home/$USER/jobs/logs/raw.$PBS_JOBID >> "$final"
+    rm  /home/$USER/jobs/logs/raw.$PBS_JOBID
+}
+trap cleanup EXIT
