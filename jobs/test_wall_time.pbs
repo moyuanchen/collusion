@@ -2,7 +2,7 @@
 #PBS -l walltime=01:00:00
 #PBS -l select=1:ncpus=1:mem=1gb
 #PBS -j oe                       
-#PBS -o /home/$USER/collusion/jobs/log/raw.$PBS_JOBID     
+#PBS -o /$HOME/collusion/jobs/log/raw.$PBS_JOBID     
 
 cd ${PBS_O_WORKDIR}
 
@@ -14,7 +14,7 @@ source ~/miniforge3/bin/activate collusion   # ← note single line
 
 # --- build final filename with date & comment ---
 stamp=$(date +%Y%m%d-%H%M)
-logdir=/home/$USER/collusion/jobs/log
+logdir=$HOME/collusion/jobs/log
 final="$logdir/collusion_${PBS_JOBID}_${stamp}.log"
 
 # redirect everything from here on
