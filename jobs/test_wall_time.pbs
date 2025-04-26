@@ -2,7 +2,7 @@
 #PBS -l walltime=01:00:00
 #PBS -l select=1:ncpus=1:mem=1gb
 #PBS -j oe                       
-#PBS -o /$HOME/collusion/jobs/log/sigma_u_10.log
+#PBS -o /$HOME/collusion/jobs/log/sigma_u_10_${PBS_JOBID}.log
 
 cd ${PBS_O_WORKDIR}
 
