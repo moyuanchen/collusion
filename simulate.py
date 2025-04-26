@@ -2,7 +2,7 @@ from util import simulate
 from config import Config
 
 
-c = Config(sigma_u=10)
+c = Config(sigma_u=100)
 counter = 0
 convergence_threshold = 1000000
 while counter < convergence_threshold:
