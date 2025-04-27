@@ -1,8 +1,6 @@
 #!/bin/bash
-#PBS -l walltime=04:00:00
-#PBS -l select=1:ncpus=1:mem=1gb
-#PBS -j oe                       
-#PBS -o /$HOME/collusion/jobs/log/sigma_u_10.log
+#PBS -l walltime=16:00:00
+#PBS -l select=1:ncpus=4:mem=2gb
 
 cd ${PBS_O_WORKDIR}
 
