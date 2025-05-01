@@ -1,19 +1,19 @@
 #!/bin/bash
-#PBS -N mm_test
+#PBS -N mm_test_gpu
+#PBS -q v1_gpu72
 #PBS -l walltime=02:00:00
-#PBS -l select=1:ncpus=4:mem=4gb,gpu=1
+#PBS -l select=1:ncpus=4:mem=4gb
 #PBS -j oe
 
 cd ${PBS_O_WORKDIR}
 
-# load conda (or module) and activate environment
+# make conda & python visible
 export PATH="$HOME/miniforge3/bin:$PATH"
 source ~/miniforge3/bin/activate collusion
 
-# choose small batch/steps for a quick smoke test
 python market_maker_torch.py \
     --batch 16 \
     --steps 1000 \
-    --out test_Qtable.pt
+    --out test_Qtable_gpu.pt
 
-echo "Test run finished on $(hostname) at $(date)"
+echo "GPU test run finished on $(hostname) at $(date)"
