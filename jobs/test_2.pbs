@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N mm_test
+#PBS -l walltime=02:00:00
+#PBS -l select=1:ncpus=4:mem=4gb,gpu=1
+#PBS -j oe
+
+cd ${PBS_O_WORKDIR}
+
+# load conda (or module) and activate environment
+export PATH="$HOME/miniforge3/bin:$PATH"
+source ~/miniforge3/bin/activate collusion
+
+# choose small batch/steps for a quick smoke test
+python market_maker_torch.py \
+    --batch 16 \
+    --steps 1000 \
+    --out test_Qtable.pt
+
+echo "Test run finished on $(hostname) at $(date)"
