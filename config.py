@@ -45,10 +45,10 @@ class Config:
     sigma_u: float = 0.1      # Standard deviation of the noise trade volume
 
     # Calculate lambda and chi using solve_chiM and solve_chiN
-    chi_M: float
-    lambda_M: float
-    chi_N: float
-    lambda_N: float
+    # chi_M: float
+    # lambda_M: float = sigma_u / sigma_v
+    # chi_N: float
+    # lambda_N: float = np.sqrt(I) * sigma_u / ((I+1) * sigma_v)
     chi_M, lambda_M = solve_chiM(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000)
     chi_N, lambda_N = solve_chiN(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000)
 
