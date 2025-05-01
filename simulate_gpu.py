@@ -43,7 +43,7 @@ class Config:
     theta: float = 0.1
 
     # device for torch tensors
-device: str = "cuda"
+    device: str = "cuda"
 
 
 # -----------------------------------------------------------------------------
