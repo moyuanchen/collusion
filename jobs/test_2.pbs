@@ -1,8 +1,7 @@
 #!/bin/bash
 #PBS -N mm_test_gpu
-#PBS -q v1_gpu72
 #PBS -l walltime=02:00:00
-#PBS -l select=1:ncpus=4:mem=4gb
+#PBS -l select=1:ncpus=4:mem=24gb:ngpus=1:gpu_type=RTX6000
 #PBS -j oe
 
 cd ${PBS_O_WORKDIR}
@@ -11,7 +10,7 @@ cd ${PBS_O_WORKDIR}
 export PATH="$HOME/miniforge3/bin:$PATH"
 source ~/miniforge3/bin/activate collusion
 
-python market_maker_torch.py \
+python simulate_gpu.py \
     --batch 16 \
     --steps 1000 \
     --out test_Qtable_gpu.pt
