@@ -1,0 +1,37 @@
+#!/bin/bash
+#PBS -l walltime=01:00:00  # Adjusted walltime (example, estimate based on your needs)
+#PBS -l select=1:ncpus=128:mem=32gb
+#PBS -N test1  # Optional: Job name
+#PBS -o test1.out # Optional: Standard output file
+#PBS -e test1.err # Optional: Standard error file
+
+cd ${PBS_O_WORKDIR}
+
+# make conda & python visible
+export PATH="$HOME/miniforge3/bin:$PATH"
+source ~/miniforge3/bin/activate collusion
+
+# Define simulation parameters (makes it easier to change)
+SIM_BATCH_SIZE=1000 # Example: 100 per core
+SIM_STEPS=500000
+SIM_WORKERS=128 # Utilize all requested CPUs
+OUTPUT_FILE="q_table_sigma01_b${SIM_BATCH_SIZE}_s${SIM_STEPS}.pt"
+SIGMA_U_VAL=0.1
+
+echo "Starting Python simulation with:"
+echo "Batch size: ${SIM_BATCH_SIZE}"
+echo "Steps: ${SIM_STEPS}"
+echo "Workers: ${SIM_WORKERS}"
+echo "Sigma_u: ${SIGMA_U_VAL}"
+echo "Output file: ${OUTPUT_FILE}"
+echo "Device: cpu"
+
+python simulate_cpu.py \
+    --batch ${SIM_BATCH_SIZE} \
+    --steps ${SIM_STEPS} \
+    --workers ${SIM_WORKERS} \
+    --sigma_u ${SIGMA_U_VAL} \
+    --device cpu \
+    --out ${OUTPUT_FILE}
+
+echo "Python script finished."

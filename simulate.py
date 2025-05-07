@@ -3,6 +3,8 @@ from config import Config
 import argparse, json, numpy as np
 from pathlib import Path
 
+
+
 # parse command line arguments
 parser = argparse.ArgumentParser(
     description="Run one simulation with an optional sigma_u override."
@@ -18,6 +20,9 @@ if args.sigma_u is not None:
 print(f"Running simulation with σᵤ = {c.sigma_u}")
 counter = 0
 convergence_threshold = 1000000
+
+
+
 while counter < convergence_threshold:
     log, agents = simulate(T = 500000, config = c, 
                            save_path='/rds/general/user/mc4724/home/data/sigma_u_' + str(c.sigma_u))
