@@ -344,7 +344,7 @@ def worker_fn(rank: int, cfg: Config,
         best_q_values = q_slice_for_best.max(dim=-1).values 
         
         bellman = (1 - cfg.alpha) * memory + cfg.alpha * (profit + cfg.rho * best_q_values) 
-
+        bellman = bellman.to(q_table.dtype) 
         idx_b = batch_ix.expand(-1, cfg.I) 
         idx_i = agent_ix.expand(current_batch_size, -1) 
         idx_p = p_idx_exp.expand(-1, cfg.I) 
