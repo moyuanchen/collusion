@@ -229,6 +229,61 @@ class VectorizedAdaptiveMarketMaker:
 
         self.ols_zp.add(zt, pt)
         self.ols_yv.add(yt, vt)
+    def state_dict(self):
+        return {
+            'theta': self.theta.cpu(),
+            'zp': {
+                'Sxx': self.ols_zp.Sxx.cpu(),
+                'Sx': self.ols_zp.Sx.cpu(),
+                'Sxy': self.ols_zp.Sxy.cpu(),
+                'Sy': self.ols_zp.Sy.cpu(),
+                'n': self.ols_zp.n.cpu(),
+                'ring_x': self.ols_zp.ring_x.buf.cpu(),
+                'ring_x_idx': self.ols_zp.ring_x.idx.cpu(),
+                'ring_y': self.ols_zp.ring_y.buf.cpu(),
+                'ring_y_idx': self.ols_zp.ring_y.idx.cpu(),
+            },
+            'yv': {
+                'Sxx': self.ols_yv.Sxx.cpu(),
+                'Sx': self.ols_yv.Sx.cpu(),
+                'Sxy': self.ols_yv.Sxy.cpu(),
+                'Sy': self.ols_yv.Sy.cpu(),
+                'n': self.ols_yv.n.cpu(),
+                'ring_x': self.ols_yv.ring_x.buf.cpu(),
+                'ring_x_idx': self.ols_yv.ring_x.idx.cpu(),
+                'ring_y': self.ols_yv.ring_y.buf.cpu(),
+                'ring_y_idx': self.ols_yv.ring_y.idx.cpu(),
+            }
+        }
+
+    @classmethod
+    def load_state_dict(cls, cfg: Config, state: dict, device: torch.device):
+        batch_size = state['zp']['Sxx'].shape[0]
+        maker = cls(cfg, batch_size, device)
+        maker.theta = state['theta'].to(device)
+        # load zp
+        zp = state['zp']
+        maker.ols_zp.Sxx = zp['Sxx'].to(device)
+        maker.ols_zp.Sx = zp['Sx'].to(device)
+        maker.ols_zp.Sxy = zp['Sxy'].to(device)
+        maker.ols_zp.Sy = zp['Sy'].to(device)
+        maker.ols_zp.n = zp['n'].to(device)
+        maker.ols_zp.ring_x.buf = zp['ring_x'].to(device)
+        maker.ols_zp.ring_x.idx = zp['ring_x_idx'].to(device)
+        maker.ols_zp.ring_y.buf = zp['ring_y'].to(device)
+        maker.ols_zp.ring_y.idx = zp['ring_y_idx'].to(device)
+        # load yv
+        yv = state['yv']
+        maker.ols_yv.Sxx = yv['Sxx'].to(device)
+        maker.ols_yv.Sx = yv['Sx'].to(device)
+        maker.ols_yv.Sxy = yv['Sxy'].to(device)
+        maker.ols_yv.Sy = yv['Sy'].to(device)
+        maker.ols_yv.n = yv['n'].to(device)
+        maker.ols_yv.ring_x.buf = yv['ring_x'].to(device)
+        maker.ols_yv.ring_x.idx = yv['ring_x_idx'].to(device)
+        maker.ols_yv.ring_y.buf = yv['ring_y'].to(device)
+        maker.ols_yv.ring_y.idx = yv['ring_y_idx'].to(device)
+        return maker
 
 # -----------------------------------------------------------------------------
 # 5. Initialise Q batch
@@ -260,7 +315,7 @@ def worker_fn(rank: int, cfg: Config,
               profit_hist_shared: torch.Tensor,
               p_disc: torch.Tensor, v_disc: torch.Tensor, x_disc: torch.Tensor,
               noise_all: torch.Tensor, v_path_all: torch.Tensor,
-
+              mm: VectorizedAdaptiveMarketMaker,
               out_path: Path):
 
     worker_device = torch.device(cfg.device) 
@@ -298,7 +353,7 @@ def worker_fn(rank: int, cfg: Config,
     v_idx = v_path[:, 0] 
 
     # Each worker gets a VECTORIZED MM that handles `current_batch_size` independent simulations
-    mm = VectorizedAdaptiveMarketMaker(cfg, current_batch_size, worker_device)
+    # mm = VectorizedAdaptiveMarketMaker(cfg, current_batch_size, worker_device)
 
     p_idx_exp = p_idx.unsqueeze(1) 
     v_idx_exp = v_idx.unsqueeze(1) 
@@ -378,11 +433,24 @@ def worker_fn(rank: int, cfg: Config,
 # -----------------------------------------------------------------------------
 # 7. Simulation driver
 # -----------------------------------------------------------------------------
-def simulate(cfg: Config, out_path: Path):
+def simulate(cfg: Config, out_path: Path, load_path: Path = None):
     main_process_device = torch.device(cfg.device) 
     print(f"Main process using device: {main_process_device}")
     print(f"Number of workers: {cfg.num_workers}")
     print(f"Total batch size: {cfg.batch}, Steps: {cfg.steps}")
+    init_device_for_shared = torch.device("cpu") if cfg.num_workers > 1 else main_process_device
+    if load_path:
+        print(f"Loading state from {load_path}")
+        saved = torch.load(load_path, map_location=main_process_device)
+        cfg = Config(**saved['config'])
+        q_table_shared = saved['q_table'].to(main_process_device)
+        visit_count_shared = saved['visit_count'].to(main_process_device)
+        last_opt_shared = saved['last_opt'].to(main_process_device)
+        conv_ctr_shared = saved['conv_ctr'].to(main_process_device)
+        profit_hist_shared = saved['profit_hist'].to(main_process_device)
+        mm = VectorizedAdaptiveMarketMaker.load_state_dict(cfg, saved['marketmaker'], main_process_device)
+        print("State loaded successfully.")
+        
 
     if cfg.num_workers > 1 and cfg.device == "cuda":
         print("Warning: Using CUDA with num_workers > 1. Make sure CUDA is properly set up for multiprocessing.")
@@ -397,15 +465,17 @@ def simulate(cfg: Config, out_path: Path):
     # For shared tensors, they must be on CPU if using mp.spawn with CPU workers primarily.
     # If workers are CUDA-based, sharing strategies are more complex.
     # Assuming CPU workers for now, or num_workers=1
-    init_device_for_shared = torch.device("cpu") if cfg.num_workers > 1 else main_process_device
-    
-    q_table_shared = initialise_Q_batch(cfg, p_disc_main, v_disc_main, x_disc_main, B, init_device_for_shared)
-    visit_count_shared = torch.zeros((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
-    last_opt_shared = -torch.ones((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
-    conv_ctr_shared = torch.zeros((B, cfg.I), dtype=torch.int32, device=init_device_for_shared) 
-    profit_hist_shared = torch.zeros((B, cfg.I, cfg.steps),
-                                    dtype=torch.float64,
-                                    device=init_device_for_shared)
+    if load_path is None:
+        
+        
+        q_table_shared = initialise_Q_batch(cfg, p_disc_main, v_disc_main, x_disc_main, B, init_device_for_shared)
+        visit_count_shared = torch.zeros((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
+        last_opt_shared = -torch.ones((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
+        conv_ctr_shared = torch.zeros((B, cfg.I), dtype=torch.int32, device=init_device_for_shared) 
+        profit_hist_shared = torch.zeros((B, cfg.I, cfg.steps),
+                                        dtype=torch.float64,
+                                        device=init_device_for_shared)
+        mm = VectorizedAdaptiveMarketMaker(cfg, B, main_process_device)
     noise_all_main = torch.randn((B, cfg.steps), device=init_device_for_shared, dtype=torch.float64) * torch.tensor(cfg.sigma_u, dtype=torch.float64)
     v_path_all_main = torch.randint(0, cfg.Nv, (B, cfg.steps), device=init_device_for_shared)
 
@@ -421,20 +491,22 @@ def simulate(cfg: Config, out_path: Path):
         # The worker_fn will move its slice of noise/v_path to cfg.device.
 
     if cfg.num_workers > 1:
-        args_tuple = (cfg, q_table_shared, visit_count_shared, last_opt_shared, conv_ctr_shared, profit_hist_shared,
-                p_disc_main.clone(), v_disc_main.clone(), x_disc_main.clone(), # Pass clones if they might be modified or for safety
-                noise_all_main, v_path_all_main, out_path)
-        print("Starting worker processes...")
-        mp.spawn(worker_fn,
-                 args=args_tuple,
-                 nprocs=cfg.num_workers,
-                 join=True)
-        print("All workers finished.")
-        torch.save({
-            'q_table': q_table_shared.cpu(),
-            'conv_ctr': conv_ctr_shared.cpu(),
-            'profit_hist': profit_hist_shared.cpu(),
-        }, str(out_path))
+        # args_tuple = (cfg, q_table_shared, visit_count_shared, last_opt_shared, conv_ctr_shared, profit_hist_shared,
+        #         p_disc_main.clone(), v_disc_main.clone(), x_disc_main.clone(), # Pass clones if they might be modified or for safety
+        #         noise_all_main, v_path_all_main, out_path)
+        # print("Starting worker processes...")
+        # mp.spawn(worker_fn,
+        #          args=args_tuple,
+        #          nprocs=cfg.num_workers,
+        #          join=True)
+        # print("All workers finished.")
+        # torch.save({
+        #     'q_table': q_table_shared.cpu(),
+        #     'conv_ctr': conv_ctr_shared.cpu(),
+        #     'profit_hist': profit_hist_shared.cpu(),
+        # }, str(out_path))
+        print("Multiprocessing not implemented in this version.")
+        pass
     else: # Run in a single process (no spawning)
         print("Running in a single process...")
         # The "rank" is 0, and all data is local.
@@ -457,14 +529,34 @@ def simulate(cfg: Config, out_path: Path):
 
         worker_fn(0, cfg, q_table_local, visit_count_local, last_opt_local, conv_ctr_local, profit_hist_local,
                   p_disc_local, v_disc_local, x_disc_local,
-                  noise_all_local, v_path_all_local, out_path)
+                  noise_all_local, v_path_all_local, mm, out_path)
         # Assume profit_history was recorded during simulation (e.g., as a tensor or list)
         # If it's not already on CPU, move it to CPU before saving
         # q_table_shared = q_table_local  # Update reference for saving
         torch.save({
             'q_table': q_table_local.cpu(),
+            'visit_count': visit_count_local.cpu(),
+            'last_opt': last_opt_local.cpu(),
             'conv_ctr': conv_ctr_local.cpu(),
             'profit_hist': profit_hist_local.cpu(),
+            'marketmaker': {
+            'zp': {
+                'Sxx': mm.ols_zp.Sxx.cpu(),
+                'Sx': mm.ols_zp.Sx.cpu(),
+                'Sxy': mm.ols_zp.Sxy.cpu(),
+                'Sy': mm.ols_zp.Sy.cpu(),
+                'n': mm.ols_zp.n.cpu(),
+            },
+            'yv': {
+                'Sxx': mm.ols_yv.Sxx.cpu(),
+                'Sx': mm.ols_yv.Sx.cpu(),
+                'Sxy': mm.ols_yv.Sxy.cpu(),
+                'Sy': mm.ols_yv.Sy.cpu(),
+                'n': mm.ols_yv.n.cpu(),
+            },
+            
+            },
+            'config': cfg.__dict__
         }, str(out_path))
     print(f"Q-table saved to {out_path}")
 
@@ -479,6 +571,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="cpu", help="Device to use ('cpu' or 'cuda')")
     parser.add_argument("--out", required=True, help="Path to save Q-table (.pt)")
     parser.add_argument("--sigma_u", type=float, default=0.1, help="Override noise-trader σᵤ (float)")
+    parser.add_argument("--load", type=str, default=None, help="Path to load state from (.pt)")
     
     cli_args = parser.parse_args()
     
@@ -508,4 +601,5 @@ if __name__ == "__main__":
         else:
             print(f"Using CUDA device: {torch.cuda.get_device_name(0)}")
     
-    simulate(cfg, Path(cli_args.out))
+    simulate(cfg, Path(cli_args.out), load_path=Path(cli_args.load) if cli_args.load else None)
+    # print("Simulation complete.")

@@ -1,0 +1,13 @@
+#!/bin/bash
+#PBS -l walltime=00:30:00
+#PBS -l select=1:ncpus=128:mem=32gb
+
+
+cd ${PBS_O_WORKDIR}
+
+
+# make conda & python visible
+export PATH="$HOME/miniforge3/bin:$PATH"
+source ~/miniforge3/bin/activate collusion   # ← note single line
+
+python simulate.py --sigma_u 0.1
