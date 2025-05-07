@@ -539,23 +539,7 @@ def simulate(cfg: Config, out_path: Path, load_path: Path = None):
             'last_opt': last_opt_local.cpu(),
             'conv_ctr': conv_ctr_local.cpu(),
             'profit_hist': profit_hist_local.cpu(),
-            'marketmaker': {
-            'zp': {
-                'Sxx': mm.ols_zp.Sxx.cpu(),
-                'Sx': mm.ols_zp.Sx.cpu(),
-                'Sxy': mm.ols_zp.Sxy.cpu(),
-                'Sy': mm.ols_zp.Sy.cpu(),
-                'n': mm.ols_zp.n.cpu(),
-            },
-            'yv': {
-                'Sxx': mm.ols_yv.Sxx.cpu(),
-                'Sx': mm.ols_yv.Sx.cpu(),
-                'Sxy': mm.ols_yv.Sxy.cpu(),
-                'Sy': mm.ols_yv.Sy.cpu(),
-                'n': mm.ols_yv.n.cpu(),
-            },
-            
-            },
+            'marketmaker': mm.state_dict(),
             'config': cfg.__dict__
         }, str(out_path))
     print(f"Q-table saved to {out_path}")
