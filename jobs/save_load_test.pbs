@@ -37,7 +37,7 @@ python simulate_cpu.py \
     --steps ${SIM_STEPS} \
     --sigma_u ${SIGMA_U_VAL} \
     --device cpu \
-    --load ${OUTPUT_FILE}
+    --load ${OUTPUT_FILE}\
     --out ${OUTPUT_FILE}
 
 echo "Python script finished."
