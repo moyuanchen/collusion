@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l walltime=01:00:00  # Adjusted walltime (example, estimate based on your needs)
+#PBS -l walltime=01:00:00  
 #PBS -l select=1:ncpus=128:mem=32gb
 #PBS -N test1  # Optional: Job name
 #PBS -o test1.out # Optional: Standard output file
