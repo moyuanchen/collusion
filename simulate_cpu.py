@@ -117,17 +117,17 @@ def _grid_linspace(low: float, high: float, n: int, device: torch.device, dtype:
 
 def build_discretisations(cfg: Config) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     device = torch.device(cfg.device)
-    probs = (2 * torch.arange(1, cfg.Nv + 1, device=device, dtype=torch.float64) - 1) / (2 * cfg.Nv)
+    probs = (2 * torch.arange(1, cfg.Nv + 1, device=device, dtype=torch.float32) - 1) / (2 * cfg.Nv)
     v_disc = cfg.v_bar + cfg.sigma_v * torch.sqrt(torch.tensor(2.0, device=device)) * torch.erfinv(2 * probs - 1)
     span_x = abs(cfg.chi_N - cfg.chi_M)
     low_x = -max(cfg.chi_N, cfg.chi_M) - cfg.iota * span_x
     high_x = max(cfg.chi_N, cfg.chi_M) + cfg.iota * span_x
-    x_disc = _grid_linspace(low_x, high_x, cfg.Nx, device, torch.float64)
+    x_disc = _grid_linspace(low_x, high_x, cfg.Nx, device, torch.float32)
     lam_max = max(cfg.lambda_N, cfg.lambda_M)
     ph = cfg.v_bar + lam_max * (cfg.I * max(cfg.chi_N, cfg.chi_M) + cfg.sigma_u * 1.96)
     pl = cfg.v_bar - lam_max * (cfg.I * max(cfg.chi_N, cfg.chi_M) + cfg.sigma_u * 1.96)
     span_p = ph - pl
-    p_disc = _grid_linspace(pl - cfg.iota * span_p, ph + cfg.iota * span_p, cfg.Np, device, torch.float64)
+    p_disc = _grid_linspace(pl - cfg.iota * span_p, ph + cfg.iota * span_p, cfg.Np, device, torch.float32)
     return p_disc, v_disc, x_disc
 
 # -----------------------------------------------------------------------------
@@ -137,7 +137,7 @@ class VectorizedRing:
     """Circular buffer storing a fixed number of scalars for a batch of series."""
     __slots__ = ("buf", "idx", "batch_size", "ring_size", "device", "dtype")
 
-    def __init__(self, batch_size: int, ring_size: int, device: torch.device, dtype: torch.dtype = torch.float64):
+    def __init__(self, batch_size: int, ring_size: int, device: torch.device, dtype: torch.dtype = torch.float32):
         self.batch_size = batch_size
         self.ring_size = ring_size
         self.device = device
@@ -171,14 +171,14 @@ class VectorizedOnlineOLS:
         self.ring_size = ring_size # This is 'm' from the original OnlineOLS
         self.device = device
 
-        self.ring_x = VectorizedRing(batch_size, ring_size, device, dtype=torch.float64)
-        self.ring_y = VectorizedRing(batch_size, ring_size, device, dtype=torch.float64)
+        self.ring_x = VectorizedRing(batch_size, ring_size, device, dtype=torch.float32)
+        self.ring_y = VectorizedRing(batch_size, ring_size, device, dtype=torch.float32)
         
-        self.Sxx = torch.zeros(batch_size, dtype=torch.float64, device=device)
-        self.Sx = torch.zeros(batch_size, dtype=torch.float64, device=device)
-        self.Sxy = torch.zeros(batch_size, dtype=torch.float64, device=device)
-        self.Sy = torch.zeros(batch_size, dtype=torch.float64, device=device)
-        self.n = torch.zeros(batch_size, dtype=torch.float64, device=device) # Using float for potential fractional counts if averaging, but long/int if strict counting
+        self.Sxx = torch.zeros(batch_size, dtype=torch.float32, device=device)
+        self.Sx = torch.zeros(batch_size, dtype=torch.float32, device=device)
+        self.Sxy = torch.zeros(batch_size, dtype=torch.float32, device=device)
+        self.Sy = torch.zeros(batch_size, dtype=torch.float32, device=device)
+        self.n = torch.zeros(batch_size, dtype=torch.float32, device=device) # Using float for potential fractional counts if averaging, but long/int if strict counting
 
     def add(self, x: torch.Tensor, y: torch.Tensor):
         """Add a batch of (x,y) pairs, one for each OLS series."""
@@ -210,8 +210,8 @@ class VectorizedOnlineOLS:
         self.Sy += y
 
     def coef(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        beta1 = torch.zeros(self.batch_size, device=self.device, dtype=torch.float64)
-        beta0 = torch.zeros(self.batch_size, device=self.device, dtype=torch.float64)
+        beta1 = torch.zeros(self.batch_size, device=self.device, dtype=torch.float32)
+        beta0 = torch.zeros(self.batch_size, device=self.device, dtype=torch.float32)
 
         # Calculate for series with enough data points (n >= 2)
         valid_mask = (self.n >= 2)
@@ -260,7 +260,7 @@ class VectorizedOnlineOLS:
 class VectorizedAdaptiveMarketMaker:
     """Vectorized market-maker, managing a batch of independent OLS trackers."""
     def __init__(self, cfg: Config, batch_size: int, device: torch.device):
-        self.theta = torch.tensor(cfg.theta, device=device, dtype=torch.float64)
+        self.theta = torch.tensor(cfg.theta, device=device, dtype=torch.float32)
         self.ols_zp = VectorizedOnlineOLS(batch_size, cfg.Tm, device)
         self.ols_yv = VectorizedOnlineOLS(batch_size, cfg.Tm, device)
         self.device = device
@@ -362,7 +362,7 @@ def initialise_Q_batch(cfg: Config,
     base_v = v_disc_init - cfg.v_bar - cfg.lambda_N * cfg.chi_N
     const_v = (Nx * base_v - cfg.lambda_N * (I - 1) * Sx) / ((1 - cfg.rho) * Nx)
     core = const_v.view(1, 1, 1, Nv, 1) * x_disc_init.view(1, 1, 1, 1, Nx)
-    Q0 = core.expand(B, I, Np, Nv, Nx).to(dtype=torch.float64, device=init_device)
+    Q0 = core.expand(B, I, Np, Nv, Nx).to(dtype=torch.float32, device=init_device)
     return Q0
 
 # -----------------------------------------------------------------------------
@@ -448,13 +448,13 @@ def worker_fn(rank: int, cfg: Config,
         x_sel = x_disc[action]  
         y_sum = x_sel.sum(dim=1) + u_t 
         
-        p_val = mm.determine_price(y_sum.to(torch.float64)) 
+        p_val = mm.determine_price(y_sum.to(torch.float32)) 
         z_val = cfg.xi * (p_val - cfg.v_bar) 
 
-        mm.update(v_disc[v_idx].to(torch.float64), 
-                  p_val.to(torch.float64), 
-                  z_val.to(torch.float64), 
-                  y_sum.to(torch.float64))
+        mm.update(v_disc[v_idx].to(torch.float32), 
+                  p_val.to(torch.float32), 
+                  z_val.to(torch.float32), 
+                  y_sum.to(torch.float32))
 
         profit = x_sel * (v_disc[v_idx].unsqueeze(1) - p_val.unsqueeze(1))  # shape (current_batch_size, cfg.I)
         profit_hist[:, :, t] = profit 
@@ -534,10 +534,10 @@ def simulate(cfg: Config, out_path: Path, load_path: Path = None):
         last_opt_shared = -torch.ones((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
         conv_ctr_shared = torch.zeros((B, cfg.I), dtype=torch.int32, device=init_device_for_shared) 
         profit_hist_shared = torch.zeros((B, cfg.I, cfg.steps),
-                                        dtype=torch.float64,
+                                        dtype=torch.float32,
                                         device=init_device_for_shared)
         mm = VectorizedAdaptiveMarketMaker(cfg, B, main_process_device)
-    noise_all_main = torch.randn((B, cfg.steps), device=init_device_for_shared, dtype=torch.float64) * torch.tensor(cfg.sigma_u, dtype=torch.float64)
+    noise_all_main = torch.randn((B, cfg.steps), device=init_device_for_shared, dtype=torch.float32) * torch.tensor(cfg.sigma_u, dtype=torch.float32)
     v_path_all_main = torch.randint(0, cfg.Nv, (B, cfg.steps), device=init_device_for_shared)
 
     if cfg.num_workers > 1:

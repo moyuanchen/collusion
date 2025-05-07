@@ -1,0 +1,35 @@
+#!/bin/bash
+#PBS -l walltime=00:30:00  
+#PBS -l select=1:ncpus=128:mem=32gb
+#PBS -N save_load_3  
+#PBS -o save_load_3.out
+#PBS -e save_load_3.err 
+
+cd ${PBS_O_WORKDIR}
+
+export PATH="$HOME/miniforge3/bin:$PATH"
+source ~/miniforge3/bin/activate collusion
+
+
+SIM_BATCH_SIZE=1000 
+SIM_STEPS=50000
+SIM_CONV=10
+
+OUTPUT_FILE="/rds/general/user/mc4724/home/data/tests/batch_sigma-1_2.pt"
+SIGMA_U_VAL=0.1
+
+echo "Starting Python simulation with:"
+echo "Batch size: ${SIM_BATCH_SIZE}"
+echo "Steps: ${SIM_STEPS}"
+echo "Sigma_u: ${SIGMA_U_VAL}"
+echo "Output file: ${OUTPUT_FILE}"
+echo "Device: cpu"
+
+python simulate_cpu.py \
+    --batch ${SIM_BATCH_SIZE} \
+    --steps ${SIM_STEPS} \
+    --sigma_u ${SIGMA_U_VAL} \
+    --device cpu \
+    --out ${OUTPUT_FILE} \
+    --convergence ${SIM_CONV}
+echo "Python script finished."
