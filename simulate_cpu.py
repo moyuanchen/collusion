@@ -362,8 +362,8 @@ def initialise_Q_batch(cfg: Config,
     base_v = v_disc_init - cfg.v_bar - cfg.lambda_N * cfg.chi_N
     const_v = (Nx * base_v - cfg.lambda_N * (I - 1) * Sx) / ((1 - cfg.rho) * Nx)
     core = const_v.view(1, 1, 1, Nv, 1) * x_disc_init.view(1, 1, 1, 1, Nx)
-    Q0 = core.expand(B, I, Np, Nv, Nx).to(dtype=torch.float32, device=init_device)
-    return Q0
+    Q0 = core.expand(B, I, Np, Nv, Nx).contiguous().clone()
+    return Q0.to(dtype=torch.float32, device=init_device)
 
 # -----------------------------------------------------------------------------
 # 6. Simulation worker
