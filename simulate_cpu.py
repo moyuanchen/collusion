@@ -462,6 +462,7 @@ if __name__ == "__main__":
     parser.add_argument("--workers", type=int, default=1, help="Number of CPU worker processes.") # Default to 1 for vectorized MM
     parser.add_argument("--device", type=str, default="cpu", help="Device to use ('cpu' or 'cuda')")
     parser.add_argument("--out", required=True, help="Path to save Q-table (.pt)")
+    parser.add_argument("--sigma_u", type=float, default=0.1, help="Override noise-trader σᵤ (float)")
     
     cli_args = parser.parse_args()
     
@@ -478,7 +479,8 @@ if __name__ == "__main__":
     cfg = Config(batch=cli_args.batch, 
                  steps=cli_args.steps, 
                  num_workers=cli_args.workers,
-                 device=cli_args.device)
+                 device=cli_args.device,
+                 sigma_u=cli_args.sigma_u)
     
     if cfg.num_workers > 1 and cfg.device == "cuda":
         print("Note: Using multiple workers with CUDA. Ensure your setup supports this well.")
