@@ -257,8 +257,10 @@ def worker_fn(rank: int, cfg: Config,
               visit_count_shared: torch.Tensor,
               last_opt_shared: torch.Tensor,
               conv_ctr_shared: torch.Tensor,
+              profit_hist_shared: torch.Tensor,
               p_disc: torch.Tensor, v_disc: torch.Tensor, x_disc: torch.Tensor,
               noise_all: torch.Tensor, v_path_all: torch.Tensor,
+
               out_path: Path):
 
     worker_device = torch.device(cfg.device) 
@@ -281,7 +283,7 @@ def worker_fn(rank: int, cfg: Config,
     visit_count = visit_count_shared[start_idx:end_idx]
     last_opt = last_opt_shared[start_idx:end_idx]
     conv_ctr = conv_ctr_shared[start_idx:end_idx]
-    
+    profit_hist = profit_hist_shared[start_idx:end_idx]
     noise = noise_all[start_idx:end_idx, :].to(worker_device) # Move worker's slice to its device
     v_path = v_path_all[start_idx:end_idx, :].to(worker_device)
 
@@ -338,8 +340,8 @@ def worker_fn(rank: int, cfg: Config,
                   z_val.to(torch.float64), 
                   y_sum.to(torch.float64))
 
-        profit = x_sel * (v_disc[v_idx].unsqueeze(1) - p_val.unsqueeze(1)) 
-        
+        profit = x_sel * (v_disc[v_idx].unsqueeze(1) - p_val.unsqueeze(1))  # shape (current_batch_size, cfg.I)
+        profit_hist[:, :, t] = profit 
         q_slice_for_best = q_table[batch_ix, agent_ix, p_idx_exp, v_idx_exp] 
         best_q_values = q_slice_for_best.max(dim=-1).values 
         
@@ -350,7 +352,7 @@ def worker_fn(rank: int, cfg: Config,
         idx_p = p_idx_exp.expand(-1, cfg.I) 
         idx_v = v_idx_exp.expand(-1, cfg.I) 
         
-        q_table[idx_b, idx_i, idx_p, idx_v, action] = bellman
+        q_table[idx_b.clone(), idx_i.clone(), idx_p.clone(), idx_v.clone(), action.clone()] = bellman
         memory = bellman 
 
         current_last_opt = last_opt[batch_ix, agent_ix, p_idx_exp, v_idx_exp]
@@ -401,11 +403,14 @@ def simulate(cfg: Config, out_path: Path):
     visit_count_shared = torch.zeros((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
     last_opt_shared = -torch.ones((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
     conv_ctr_shared = torch.zeros((B, cfg.I), dtype=torch.int32, device=init_device_for_shared) 
-
+    profit_hist_shared = torch.zeros((B, cfg.I, cfg.steps),
+                                    dtype=torch.float64,
+                                    device=init_device_for_shared)
     noise_all_main = torch.randn((B, cfg.steps), device=init_device_for_shared, dtype=torch.float64) * torch.tensor(cfg.sigma_u, dtype=torch.float64)
     v_path_all_main = torch.randint(0, cfg.Nv, (B, cfg.steps), device=init_device_for_shared)
 
     if cfg.num_workers > 1:
+        profit_hist_shared.share_memory_()
         q_table_shared.share_memory_()
         visit_count_shared.share_memory_()
         last_opt_shared.share_memory_()
@@ -416,7 +421,7 @@ def simulate(cfg: Config, out_path: Path):
         # The worker_fn will move its slice of noise/v_path to cfg.device.
 
     if cfg.num_workers > 1:
-        args_tuple = (cfg, q_table_shared, visit_count_shared, last_opt_shared, conv_ctr_shared,
+        args_tuple = (cfg, q_table_shared, visit_count_shared, last_opt_shared, conv_ctr_shared, profit_hist_shared,
                 p_disc_main.clone(), v_disc_main.clone(), x_disc_main.clone(), # Pass clones if they might be modified or for safety
                 noise_all_main, v_path_all_main, out_path)
         print("Starting worker processes...")
@@ -425,6 +430,11 @@ def simulate(cfg: Config, out_path: Path):
                  nprocs=cfg.num_workers,
                  join=True)
         print("All workers finished.")
+        torch.save({
+            'q_table': q_table_shared.cpu(),
+            'conv_ctr': conv_ctr_shared.cpu(),
+            'profit_hist': profit_hist_shared.cpu(),
+        }, str(out_path))
     else: # Run in a single process (no spawning)
         print("Running in a single process...")
         # The "rank" is 0, and all data is local.
@@ -437,6 +447,7 @@ def simulate(cfg: Config, out_path: Path):
         visit_count_local = visit_count_shared.to(main_process_device)
         last_opt_local = last_opt_shared.to(main_process_device)
         conv_ctr_local = conv_ctr_shared.to(main_process_device)
+        profit_hist_local = profit_hist_shared.to(main_process_device)
         
         p_disc_local = p_disc_main.to(main_process_device)
         v_disc_local = v_disc_main.to(main_process_device)
@@ -444,12 +455,17 @@ def simulate(cfg: Config, out_path: Path):
         noise_all_local = noise_all_main.to(main_process_device)
         v_path_all_local = v_path_all_main.to(main_process_device)
 
-        worker_fn(0, cfg, q_table_local, visit_count_local, last_opt_local, conv_ctr_local,
+        worker_fn(0, cfg, q_table_local, visit_count_local, last_opt_local, conv_ctr_local, profit_hist_local,
                   p_disc_local, v_disc_local, x_disc_local,
                   noise_all_local, v_path_all_local, out_path)
-        q_table_shared = q_table_local # Update reference for saving
-
-    torch.save(q_table_shared.cpu(), str(out_path)) # Save the CPU version
+        # Assume profit_history was recorded during simulation (e.g., as a tensor or list)
+        # If it's not already on CPU, move it to CPU before saving
+        # q_table_shared = q_table_local  # Update reference for saving
+        torch.save({
+            'q_table': q_table_local.cpu(),
+            'conv_ctr': conv_ctr_local.cpu(),
+            'profit_hist': profit_hist_local.cpu(),
+        }, str(out_path))
     print(f"Q-table saved to {out_path}")
 
 # -----------------------------------------------------------------------------
