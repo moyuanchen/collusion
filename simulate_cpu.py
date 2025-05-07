@@ -654,12 +654,12 @@ if __name__ == "__main__":
 
     load = Path(cli_args.load) if cli_args.load else None
 
-    conv = simulate(cfg, next_save, load)
+    conv = int(simulate(cfg, next_save, load).min().item())
     print(f"Convergence counter: {conv}")
     while conv < cli_args.convergence:
         load = next_save
         next_save, alt_save = alt_save, next_save
-        conv = simulate(cfg, next_save, load)
+        conv = int(simulate(cfg, next_save, load).min().item())
         print(f"Convergence counter: {conv}")
 
     # print("Simulation complete.")
