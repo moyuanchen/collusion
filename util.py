@@ -4,11 +4,20 @@ from itertools import product
 from collections import defaultdict
 from agents import InformedAgent, AdaptiveMarketMaker, NoiseAgent, PreferredHabitatAgent
 # from config import Config
-
+import psutil
+import os
+import time
 
 def get_next_v(v_bar = 1, sigma_v = 1):
     return v_bar + np.random.normal(scale = sigma_v)
-
+def log_resource_usage(logfile="resource_log.txt"):
+    pid = os.getpid()
+    p = psutil.Process(pid)
+    cpu = p.cpu_percent(interval=0.1)  # brief wait to get nonzero value
+    mem = p.memory_info().rss / 1e9    # in GB
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+    with open(logfile, "a") as f:
+        f.write(f"[{timestamp}] CPU: {cpu:.2f}%, Memory: {mem:.2f} GB\n")
 
 
 def simulate(
@@ -92,6 +101,8 @@ def simulate(
         save_path = '/Users/moyuanchen/Documents/thesis/data.npy'
 
     for t in range(T):
+        if t % 1000 == 0:
+            log_resource_usage(logfile=save_path + "resource_log.txt")
         yt = []
         _p, _v = informed_agents[0].p_discrete[_state[0]], informed_agents[0].v_discrete[_state[1]]
         v_hist[t+t0] = _v
