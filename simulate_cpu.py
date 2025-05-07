@@ -246,7 +246,7 @@ def initialise_Q_batch(cfg: Config,
     base_v = v_disc_init - cfg.v_bar - cfg.lambda_N * cfg.chi_N
     const_v = (Nx * base_v - cfg.lambda_N * (I - 1) * Sx) / ((1 - cfg.rho) * Nx)
     core = const_v.view(1, 1, 1, Nv, 1) * x_disc_init.view(1, 1, 1, 1, Nx)
-    Q0 = core.expand(B, I, Np, Nv, Nx).to(dtype=torch.float32, device=init_device)
+    Q0 = core.expand(B, I, Np, Nv, Nx).to(dtype=torch.float64, device=init_device)
     return Q0
 
 # -----------------------------------------------------------------------------
@@ -344,7 +344,7 @@ def worker_fn(rank: int, cfg: Config,
         best_q_values = q_slice_for_best.max(dim=-1).values 
         
         bellman = (1 - cfg.alpha) * memory + cfg.alpha * (profit + cfg.rho * best_q_values) 
-        bellman = bellman.to(q_table.dtype) 
+
         idx_b = batch_ix.expand(-1, cfg.I) 
         idx_i = agent_ix.expand(current_batch_size, -1) 
         idx_p = p_idx_exp.expand(-1, cfg.I) 
