@@ -361,7 +361,7 @@ def worker_fn(rank: int, cfg: Config,
         conv_ctr[reset_local, :] = 0
         conv_ctr[~reset_local, :] += 1 
         
-        last_opt[batch_ix, agent_ix, p_idx_exp, v_idx_exp] = greedy
+        last_opt[batch_ix, agent_ix, p_idx_exp, v_idx_exp] = greedy.to(last_opt.dtype)
 
         v_idx = v_path[:, t + 1] 
         v_idx_exp = v_idx.unsqueeze(1) 
@@ -399,10 +399,10 @@ def simulate(cfg: Config, out_path: Path):
     
     q_table_shared = initialise_Q_batch(cfg, p_disc_main, v_disc_main, x_disc_main, B, init_device_for_shared)
     visit_count_shared = torch.zeros((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
-    last_opt_shared = -torch.ones((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int16, device=init_device_for_shared)
+    last_opt_shared = -torch.ones((B, cfg.I, cfg.Np, cfg.Nv), dtype=torch.int32, device=init_device_for_shared)
     conv_ctr_shared = torch.zeros((B, cfg.I), dtype=torch.int32, device=init_device_for_shared) 
 
-    noise_all_main = torch.randn((B, cfg.steps), device=init_device_for_shared, dtype=torch.float64) * cfg.sigma_u
+    noise_all_main = torch.randn((B, cfg.steps), device=init_device_for_shared, dtype=torch.float64) * torch.tensor(cfg.sigma_u, dtype=torch.float64)
     v_path_all_main = torch.randint(0, cfg.Nv, (B, cfg.steps), device=init_device_for_shared)
 
     if cfg.num_workers > 1:
