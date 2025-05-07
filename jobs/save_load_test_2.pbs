@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -l walltime=00:30:00  
-#PBS -l select=1:ncpus=255:mem=16gb
+#PBS -l select=1:ncpus=128:mem=16gb
 #PBS -N save_load_2  
 #PBS -o save_load_2.out
 #PBS -e save_load_2.err 
