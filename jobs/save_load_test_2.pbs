@@ -13,9 +13,9 @@ source ~/miniforge3/bin/activate collusion
 
 SIM_BATCH_SIZE=1000 
 SIM_STEPS=500000
-SIM_CONV=100
+SIM_CONV=10
 
-OUTPUT_FILE="/rds/general/user/mc4724/home/data/batch_sigma-1.pt"
+OUTPUT_FILE="/rds/general/user/mc4724/home/data/tests/batch_sigma-1.pt"
 SIGMA_U_VAL=0.1
 
 echo "Starting Python simulation with:"
