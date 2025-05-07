@@ -401,23 +401,25 @@ def worker_fn(rank: int, cfg: Config,
     conv_ctr = conv_ctr_shared[start_idx:end_idx]
     profit_hist = profit_hist_shared[start_idx:end_idx]
     noise = noise_all[start_idx:end_idx, :].to(worker_device) # Move worker's slice to its device
-    v_path = v_path_all[start_idx:end_idx, :].to(worker_device)
+    v_path = v_path_all[start_idx:end_idx, :].to(worker_device) # shape (current_batch_size, steps)
 
     p_disc = p_disc.to(worker_device)
     v_disc = v_disc.to(worker_device)
     x_disc = x_disc.to(worker_device)
 
     batch_ix = torch.arange(current_batch_size, device=worker_device).unsqueeze(1)
-    agent_ix = torch.arange(cfg.I, device=worker_device).unsqueeze(0)  
+    agent_ix = torch.arange(cfg.I, device=worker_device).unsqueeze(0)
 
     p_idx = torch.randint(0, cfg.Np, (current_batch_size,), device=worker_device)
     v_idx = v_path[:, 0] 
+    v_idx_next = v_path[:, 1]
 
     # Each worker gets a VECTORIZED MM that handles `current_batch_size` independent simulations
     # mm = VectorizedAdaptiveMarketMaker(cfg, current_batch_size, worker_device)
 
     p_idx_exp = p_idx.unsqueeze(1) 
-    v_idx_exp = v_idx.unsqueeze(1) 
+    v_idx_exp = v_idx.unsqueeze(1)  # shape (current_batch_size, 1)
+    v_idx_next_exp = v_idx_next.unsqueeze(1)  # shape (current_batch_size, 1)
     
     q_slice_for_init = q_table[batch_ix, agent_ix, p_idx_exp, v_idx_exp] 
     greedy = q_slice_for_init.argmax(dim=-1) 
@@ -458,7 +460,7 @@ def worker_fn(rank: int, cfg: Config,
 
         profit = x_sel * (v_disc[v_idx].unsqueeze(1) - p_val.unsqueeze(1))  # shape (current_batch_size, cfg.I)
         profit_hist[:, :, t] = profit 
-        q_slice_for_best = q_table[batch_ix, agent_ix, p_idx_exp, v_idx_exp] 
+        q_slice_for_best = q_table[batch_ix, agent_ix, p_idx_exp, v_idx_next_exp] # shape (current_batch_size, cfg.I, cfg.Nx)
         best_q_values = q_slice_for_best.max(dim=-1).values 
         
         bellman = (1 - cfg.alpha) * memory + cfg.alpha * (profit + cfg.rho * best_q_values) 
@@ -482,7 +484,9 @@ def worker_fn(rank: int, cfg: Config,
         last_opt[batch_ix, agent_ix, p_idx_exp, v_idx_exp] = greedy.to(last_opt.dtype)
 
         v_idx = v_path[:, t + 1] 
+        v_idx_next = v_path[:, t + 2] 
         v_idx_exp = v_idx.unsqueeze(1) 
+        v_idx_next_exp = v_idx_next.unsqueeze(1)
 
         diff = torch.abs(p_disc.unsqueeze(1) - p_val.to(p_disc.dtype).unsqueeze(0)) 
         p_idx = diff.argmin(dim=0) 
