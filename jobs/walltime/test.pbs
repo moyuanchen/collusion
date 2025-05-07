@@ -29,7 +29,6 @@ echo "Device: cpu"
 python simulate_cpu.py \
     --batch ${SIM_BATCH_SIZE} \
     --steps ${SIM_STEPS} \
-    --workers ${SIM_WORKERS} \
     --sigma_u ${SIGMA_U_VAL} \
     --device cpu \
     --out ${OUTPUT_FILE}
