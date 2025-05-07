@@ -5,6 +5,65 @@ from pathlib import Path
 from typing import Tuple, List
 import torch
 import torch.multiprocessing as mp
+# -----------------------------------------------------------------------------
+# 0. Calculate chi_M and chi_N
+# -----------------------------------------------------------------------------
+
+def solve_chiN(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000):
+    """
+    Solve for the noncollusive slope chi^N in the Kyle-type model.
+
+    We use the 3-equation system from Section 3.2 in the paper:
+      (1) chi^N = 1 / [(I+1)*lambda^N]
+      (2) lambda^N = [theta * gamma^N + xi] / (theta + xi^2)
+      (3) gamma^N = (I*chi^N) / [(I*chi^N)^2 + (sigma_u/sigma_v)^2]
+
+    We do simple fixed-point iteration over chi^N.
+
+    Returns:
+      float: chi^N
+      float: lambda^N
+    """
+    chi = 0.1  # Arbitrary initial guess
+    for _ in range(max_iter):
+        # Given chi, compute gamma^N:
+        gamma = (I * chi) / ((I * chi)**2 + (sigma_u / sigma_v)**2)
+
+        # Then lambda^N:
+        lam = (theta * gamma + xi) / (theta + xi**2)
+
+        # Then the updated chi^N:
+        new_chi = 1.0 / ((I + 1) * lam)
+        # print(new_chi)
+        if abs(new_chi - chi) < tol:
+            return new_chi, lam
+        chi = new_chi
+
+    raise RuntimeError("solve_chiN did not converge within max_iter")
+
+def solve_chiM(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000):
+    """
+    Solve for the *perfect-collusion* slope chi^M in the Kyle-type model.
+
+    From Section 3.3 in the paper:
+      (1) chi^M = 1 / [2*I * lambda^M]
+      (2) lambda^M = [theta * gamma^M + xi] / (theta + xi^2)
+      (3) gamma^M = (I*chi^M) / [(I*chi^M)^2 + (sigma_u/sigma_v)^2]
+
+    Similar fixed-point iteration as above.
+    """
+    chi = 0.1  # Arbitrary initial guess
+    for _ in range(max_iter):
+        gamma = (I * chi) / ((I * chi)**2 + (sigma_u / sigma_v)**2)
+        lam = (theta * gamma + xi) / (theta + xi**2)
+        new_chi = 1.0 / (2.0 * I * lam)
+        # print(new_chi)
+        if abs(new_chi - chi) < tol:
+            return new_chi, lam
+        chi = new_chi
+
+    raise RuntimeError("solve_chiM did not converge within max_iter")
+
 
 # -----------------------------------------------------------------------------
 # 1. Config
@@ -33,12 +92,6 @@ class Config:
     beta: float = 1e-5
     xi: float = 500.0
 
-    # state-space parameters
-    chi_N: float = 0.05
-    chi_M: float = 0.10
-    lambda_N: float = 0.12
-    lambda_M: float = 0.18
-
     # OLS window and MM aggressiveness
     Tm: int = 10_000 # Ring buffer size for OLS
     theta: float = 0.1
@@ -46,6 +99,14 @@ class Config:
     # device for torch tensors
     device: str = "cpu"
     num_workers: int = 1 # Number of CPU worker processes
+    # state-space parameters
+    chi_N_, lambda_N_ = solve_chiN(I, xi, sigma_u, sigma_v, theta)
+    chi_M_, lambda_M_ = solve_chiM(I, xi, sigma_u, sigma_v, theta)
+    chi_N: float = chi_N_
+    chi_M: float = chi_M_
+    lambda_N: float = lambda_N_
+    lambda_M: float = lambda_M_
+
 
 
 # -----------------------------------------------------------------------------
@@ -543,6 +604,7 @@ def simulate(cfg: Config, out_path: Path, load_path: Path = None):
             'config': cfg.__dict__
         }, str(out_path))
     print(f"Q-table saved to {out_path}")
+    return conv_ctr_local
 
 # -----------------------------------------------------------------------------
 # 8. CLI
@@ -555,6 +617,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="cpu", help="Device to use ('cpu' or 'cuda')")
     parser.add_argument("--out", required=True, help="Path to save Q-table (.pt)")
     parser.add_argument("--sigma_u", type=float, default=0.1, help="Override noise-trader σᵤ (float)")
+    parser.add_argument("--convergence", type=int, default=1000000, help="Convergence threshold for simulation")
     parser.add_argument("--load", type=str, default=None, help="Path to load state from (.pt)")
     
     cli_args = parser.parse_args()
@@ -584,6 +647,19 @@ if __name__ == "__main__":
             cfg.device = "cpu"
         else:
             print(f"Using CUDA device: {torch.cuda.get_device_name(0)}")
-    
-    simulate(cfg, Path(cli_args.out), load_path=Path(cli_args.load) if cli_args.load else None)
+        
+    base = Path(cli_args.out)
+    next_save = base.with_name(base.stem + "_a.pt")
+    alt_save = base.with_name(base.stem + "_b.pt")
+
+    load = Path(cli_args.load) if cli_args.load else None
+
+    conv = simulate(cfg, next_save, load)
+    print(f"Convergence counter: {conv}")
+    while conv < cli_args.convergence:
+        load = next_save
+        next_save, alt_save = alt_save, next_save
+        conv = simulate(cfg, next_save, load)
+        print(f"Convergence counter: {conv}")
+
     # print("Simulation complete.")

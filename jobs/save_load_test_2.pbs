@@ -13,14 +13,14 @@ source ~/miniforge3/bin/activate collusion
 
 SIM_BATCH_SIZE=1000 
 SIM_STEPS=500
+SIM_CONV = 100
 
-OUTPUT_FILE_1="/rds/general/user/mc4724/home/data/batch_sigma-1_b${SIM_BATCH_SIZE}.pt"
+OUTPUT_FILE="/rds/general/user/mc4724/home/data/batch_sigma-1.pt"
 SIGMA_U_VAL=0.1
 
 echo "Starting Python simulation with:"
 echo "Batch size: ${SIM_BATCH_SIZE}"
 echo "Steps: ${SIM_STEPS}"
-echo "Workers: ${SIM_WORKERS}"
 echo "Sigma_u: ${SIGMA_U_VAL}"
 echo "Output file: ${OUTPUT_FILE}"
 echo "Device: cpu"
@@ -30,14 +30,6 @@ python simulate_cpu.py \
     --steps ${SIM_STEPS} \
     --sigma_u ${SIGMA_U_VAL} \
     --device cpu \
-    --out ${OUTPUT_FILE}
-echo "Simulation Finished, saved"
-python simulate_cpu.py \
-    --batch ${SIM_BATCH_SIZE} \
-    --steps ${SIM_STEPS} \
-    --sigma_u ${SIGMA_U_VAL} \
-    --device cpu \
-    --load ${OUTPUT_FILE}\
-    --out ${OUTPUT_FILE}
-
+    --out ${OUTPUT_FILE}\
+    --convergence ${SIM_CONV}
 echo "Python script finished."
