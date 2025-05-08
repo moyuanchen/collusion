@@ -429,7 +429,7 @@ def worker_fn(rank: int, cfg: Config,
         greedy.unsqueeze(-1), dim=-1
     ).squeeze(-1) 
 
-    for t in range(cfg.steps - 2):
+    for t in range(cfg.steps - 3):
         if rank == 0 and t % 10000 == 0: 
             print(f"Rank 0, Step: {t}/{cfg.steps}")
 

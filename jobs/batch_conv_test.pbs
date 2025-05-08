@@ -12,7 +12,7 @@ source ~/miniforge3/bin/activate collusion
 
 
 SIM_BATCH_SIZE=1000
-SIM_STEPS=50000
+SIM_STEPS=500
 SIM_CONV=1000
 
 OUTPUT_FILE="/rds/general/user/mc4724/home/data/tests/batch_sigma-1_conv_1.pt"
