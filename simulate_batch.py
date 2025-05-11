@@ -11,8 +11,10 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--sigma_u", type=float,
                     help="Override noise-trader σᵤ (float)")
+parser.add_argument("--cont", type=str,
+                    help="Continue simulation from a previous save (str)")
 args = parser.parse_args()
-
+continue_simulation = args.cont
 c = Config(sigma_u = 0.1)
 
 if args.sigma_u is not None:
@@ -20,21 +22,47 @@ if args.sigma_u is not None:
 print(f"Running simulation with σᵤ = {c.sigma_u}")
 counter = 0
 convergence_threshold = 1000000
-save = '/rds/general/user/mc4724/home/data/sigma_u_' + str(c.sigma_u)+'_part_0'+'.pt'
-# save = 'data_0.pt'
-log, agents = simulate_batch(T = 50000, B=1000, config = c, 
-                           save_path=save)
-i = 1
+# Define base directory for saving simulation data
+# base_path = Path("/rds/general/user/mc4724/home/data")
+base_path = Path(".")
+if continue_simulation:
+    i = int(Path(continue_simulation).stem.split('_')[-1])
+    save = base_path / f"sigma_u_{c.sigma_u}_part_{i}.pt"
+    log, agents = simulate_batch(T=5, B=1000, config=c,
+                                 save_path=str(save),
+                                 continue_simulation=continue_simulation)
+    i += 1
+    # Remove older files if more than 10 exist
+    files = sorted(base_path.glob(f"sigma_u_{c.sigma_u}_part_*.pt"),
+                   key=lambda f: int(f.stem.split('_')[-1]))
+    if len(files) > 10:
+        for old_file in files[:-10]:
+            old_file.unlink()
+else:
+    save = base_path / f"sigma_u_{c.sigma_u}_part_0.pt"
+    log, agents = simulate_batch(T=5, B=1000, config=c,
+                                 save_path=str(save))
+    i = 1
+    # Remove older files if more than 10 exist
+    files = sorted(base_path.glob(f"sigma_u_{c.sigma_u}_part_*.pt"),
+                   key=lambda f: int(f.stem.split('_')[-1]))
+    if len(files) > 10:
+        for old_file in files[:-10]:
+            old_file.unlink()
+
 while counter < convergence_threshold:
-    new_save = '/rds/general/user/mc4724/home/data/sigma_u_' + str(c.sigma_u)+'_part_{0}'.format(i)+'.pt'
-    # new_save = 'data_{0}.pt'.format(i)
-    log, agents = simulate_batch(T = 50000, B=1000, config = c, 
-                           save_path= new_save,
-                           continue_simulation=save)
+    new_save = base_path / f"sigma_u_{c.sigma_u}_part_{i}.pt"
+    log, agents = simulate_batch(T=5, B=1000, config=c,
+                                 save_path=str(new_save),
+                                 continue_simulation=str(save))
     i += 1
     save = new_save
-    # Check if the agents have converged
     counter = log['convergence_counter']
     print(f"Convergence counter: {counter}")
-    # if i > 3:
-    #     break
+    
+    # Remove older files if more than 10 exist
+    files = sorted(base_path.glob(f"sigma_u_{c.sigma_u}_part_*.pt"),
+                   key=lambda f: int(f.stem.split('_')[-1]))
+    if len(files) > 10:
+        for old_file in files[:-10]:
+            old_file.unlink()

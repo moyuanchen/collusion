@@ -3,7 +3,7 @@ import torch
 from itertools import product
 from collections import defaultdict
 from agents import *
-# from config import Config
+from config import Config
 import psutil
 import os
 import time
@@ -184,7 +184,7 @@ def simulate_batch(
     Nx = config.Nx
     sigma_u = config.sigma_u
     if type(continue_simulation) == str:
-        log = torch.load(continue_simulation)
+        log = torch.load(continue_simulation, weights_only=False)
         
         # v_hist = torch.zeros((B, T), dtype = torch.float16, device = device)
         p_hist = torch.zeros((B, T), dtype = torch.float16, device = device)
