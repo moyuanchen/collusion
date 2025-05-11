@@ -2,7 +2,8 @@
 #PBS -l walltime=08:00:00  
 #PBS -l select=1:ncpus=128:mem=64gb
 #PBS -N batch_sim
-
+#PBS -o batch_sim.out
+#PBS -e batch_sim.err
 cd ${PBS_O_WORKDIR}
 
 export PATH="$HOME/miniforge3/bin:$PATH"
