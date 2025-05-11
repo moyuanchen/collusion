@@ -52,7 +52,7 @@ else:
 
 while counter < convergence_threshold:
     new_save = base_path / f"sigma_u_{c.sigma_u}_part_{i}.pt"
-    log, agents = simulate_batch(T=5, B=1000, config=c,
+    log, agents = simulate_batch(T=50000, B=1000, config=c,
                                  save_path=str(new_save),
                                  continue_simulation=str(save))
     i += 1
