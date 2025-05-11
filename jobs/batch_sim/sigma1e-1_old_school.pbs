@@ -14,7 +14,7 @@ SIGMA_U_VAL=0.1
 echo "Starting Python simulation with:"
 echo "Sigma_u: ${SIGMA_U_VAL}"
 
-python simulate_cpu.py \
+python simulate_batch.py \
     --sigma_u ${SIGMA_U_VAL} \
 
 echo "Python script finished."
