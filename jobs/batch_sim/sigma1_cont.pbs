@@ -10,7 +10,7 @@ export PATH="$HOME/miniforge3/bin:$PATH"
 source ~/miniforge3/bin/activate collusion
 
 SIGMA_U_VAL=1
-PREV_PATH="/rds/general/user/mc4724/home/data/sigma_u_1_part_0.pt"
+PREV_PATH="/rds/general/user/mc4724/home/data/sigma_u_1.0_part_0.pt"
 
 echo "Starting Python simulation with:"
 echo "Sigma_u: ${SIGMA_U_VAL}"
