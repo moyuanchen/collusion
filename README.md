@@ -69,4 +69,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Contact
 
-For issues or inquiries, please contact the maintainer or open an issue on GitHub.
+For issues or inquiries, please contact the maintainer (moyuan.chen24 [guess what this is] imperial.ac.uk) or open an issue on GitHub.
