@@ -27,11 +27,12 @@ base_path = Path("/rds/general/user/mc4724/home/data")
 # base_path = Path(".")
 if continue_simulation:
     i = int(Path(continue_simulation).stem.split('_')[-1])
+    i += 1
     save = base_path / f"sigma_u_{c.sigma_u}_part_{i}.pt"
     log, agents = simulate_batch(T=5, B=1000, config=c,
                                  save_path=str(save),
                                  continue_simulation=continue_simulation)
-    i += 1
+    
     # Remove older files if more than 10 exist
     files = sorted(base_path.glob(f"sigma_u_{c.sigma_u}_part_*.pt"),
                    key=lambda f: int(f.stem.split('_')[-1]))
