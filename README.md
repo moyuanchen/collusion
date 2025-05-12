@@ -27,9 +27,9 @@ This project explores how reinforcement learning (RL) trading agents can learn t
 
 1. Clone the repository:
 
-   ```bash
-   git clone https://github.com/moyuanchen/collusion.git
-   cd collusion
+```bash
+git clone https://github.com/moyuanchen/collusion.git
+cd collusion
 
 2. (Optional) Set up a virtual environment:
 ```bash
