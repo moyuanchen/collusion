@@ -51,7 +51,7 @@ python simulate.py
 
 For batch simulations:
 ```bash
-python simulate_batch.py
+python simulate_batch.py --sigma_u 0.1
 ```
 
 ## Contributing
