@@ -9,8 +9,6 @@ This project explores how reinforcement learning (RL) trading agents can learn t
 - `simulate.py`: Main script for running individual simulations.
 - `simulate_batch.py`: Script for running batch simulations.
 - `util.py`: Utility functions supporting the project.
-- `analysis.ipynb`: Jupyter Notebook for analyzing simulation results.
-- `simulation.ipynb`: Jupyter Notebook for running market simulations.
 - `jobs/`: Directory containing job scripts for running simulations on HPC clusters.
   - `batch_sim/`: Contains PBS scripts for batch simulations.
 - `papers/`: Directory containing relevant research papers.
