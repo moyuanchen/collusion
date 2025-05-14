@@ -214,7 +214,7 @@ class CircularBuffer:
     """
     def __init__(self, size):
         self.size = size
-        self.buffer = np.zeros(size)
+        self.buffer = np.ones(size)
         self.index = 0
 
     def add(self, value):
@@ -346,15 +346,15 @@ class InformedAgents_Batch:
         self.I = config.I
         self.B = B
         # Q-table for RL
-        self.Q = Q_table_Batch(config)
+        self.Q = Q_table_Batch(config, B = B)
 
         # state count dictionary for epsilon decay
         # self.state_count = defaultdict(int)
-        self.state_count = torch.zeros((B, self.I, self.Np, self.Nv), dtype = torch.int16)
+        self.state_count = torch.zeros((B, self.I, self.Np, self.Nv), dtype = torch.long)
 
         # convergence dictionary
-        self.last_optimal = torch.zeros((B, self.I, self.Np, self.Nv), dtype = torch.int16)
-        self.convergence_counter = torch.zeros((B, self.I), dtype = torch.int16)
+        self.last_optimal = torch.zeros((B, self.I, self.Np, self.Nv), dtype = torch.long)
+        self.convergence_counter = torch.zeros((B, self.I), dtype = torch.long)
 
         # discretization of states
         self.get_discrete_states()
@@ -438,7 +438,8 @@ class InformedAgents_Batch:
             # p_values and v_values are 1D tensors of continuous values.
             # For each value, we pick the index of the closest grid point.
             p_idx = (torch.abs(self.p_discrete.unsqueeze(0) - p_values.unsqueeze(1))).argmin(dim=1)
-            v_idx = (torch.abs(self.v_discrete.unsqueeze(0) - v_values.unsqueeze(1))).argmin(dim=1)
+            # v_idx = (torch.abs(self.v_discrete.unsqueeze(0) - v_values.unsqueeze(1))).argmin(dim=1)
+            v_idx = v_values
             return torch.stack((p_idx, v_idx), axis = 1) # B x 2
 
     def initialize_Q(self):

@@ -13,6 +13,8 @@ parser.add_argument("--sigma_u", type=float,
                     help="Override noise-trader σᵤ (float)")
 parser.add_argument("--cont", type=str,
                     help="Continue simulation from a previous save (str)")
+parser.add_argument("--out", type=str, default="/rds/general/user/mc4724/home/data",
+                    help="Output directory for simulation data (str)")
 args = parser.parse_args()
 continue_simulation = args.cont
 c = Config(sigma_u = 0.1)
@@ -23,13 +25,13 @@ print(f"Running simulation with σᵤ = {c.sigma_u}")
 counter = 0
 convergence_threshold = 1000000
 # Define base directory for saving simulation data
-base_path = Path("/rds/general/user/mc4724/home/data")
+base_path = Path(args.out)
 # base_path = Path(".")
 if continue_simulation:
     i = int(Path(continue_simulation).stem.split('_')[-1])
     i += 1
     save = base_path / f"sigma_u_{c.sigma_u}_part_{i}.pt"
-    log, agents = simulate_batch(T=5, B=1000, config=c,
+    log, agents = simulate_batch(T=5000, B=1000, config=c,
                                  save_path=str(save),
                                  continue_simulation=continue_simulation)
     
@@ -41,7 +43,7 @@ if continue_simulation:
             old_file.unlink()
 else:
     save = base_path / f"sigma_u_{c.sigma_u}_part_0.pt"
-    log, agents = simulate_batch(T=5, B=1000, config=c,
+    log, agents = simulate_batch(T=5000, B=1000, config=c,
                                  save_path=str(save))
     i = 1
     # Remove older files if more than 10 exist

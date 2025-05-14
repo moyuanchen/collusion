@@ -285,13 +285,13 @@ def simulate_batch(
         # print(yt_sum)
         
 
-        pt = market_maker.determine_price(yt_sum)
+        pt = market_maker.determine_price(yt_sum) # B
         zt = preferred_habitat_agent.get_action(pt)
 
         z_hist[:, t] = zt
         market_maker.update(_v, _p, zt, yt_sum)
         
-        vt = v_path[:, t + 1]
+        vt = v_path[:, t + 1] # B,
         next_state = informed_agents.continuous_to_discrete(pt, vt)
         # for idx, agent in enumerate(informed_agents):
         #     reward = (_v - pt) * yt[idx]
