@@ -72,7 +72,7 @@ def solve_chiM(I, xi, sigma_u, sigma_v, theta, tol=1e-12, max_iter=10000):
 class Config:
     # model dimensions
     I: int = 2
-    batch: int = 1_000 # Total batch size
+    batch: int = 100 # Total batch size
     steps: int = 1_000_000
 
     # discretisation sizes
