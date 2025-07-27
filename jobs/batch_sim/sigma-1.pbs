@@ -1,0 +1,20 @@
+#!/bin/bash
+#PBS -l walltime=18:00:00  
+#PBS -l select=1:ncpus=128:mem=64gb
+#PBS -N batch_sim_sigma1
+#PBS -o batch_sim_sigma1.out
+#PBS -e batch_sim_sigma1.err
+cd ${PBS_O_WORKDIR}
+
+export PATH="$HOME/miniforge3/bin:$PATH"
+source ~/miniforge3/bin/activate collusion
+
+SIGMA_U_VAL=0.3679
+
+echo "Starting Python simulation with:"
+echo "Sigma_u: ${SIGMA_U_VAL}"
+
+python simulate_batch.py \
+    --sigma_u ${SIGMA_U_VAL} \
+
+echo "Python script finished."
