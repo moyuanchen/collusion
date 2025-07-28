@@ -1,6 +1,6 @@
 #!/bin/bash
-#PBS -l walltime=01:00:00  
-#PBS -l select=1:ncpus=32:mem=16gb
+#PBS -l walltime=18:00:00  
+#PBS -l select=1:ncpus=64:mem=8gb
 #PBS -N batch_sim_sigma-1
 #PBS -o batch_sim_sigma-1.out
 #PBS -e batch_sim_sigma-1.err
