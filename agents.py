@@ -489,7 +489,7 @@ class AdaptiveMarketMaker_Batch:
         self.Tm = config.Tm
 
         self.vars_ = ['v','p','z','y']
-        self.historical_data = {var: CircularBuffer_Batch(size = self.Tm) for var in self.vars_}
+        self.historical_data = {var: CircularBuffer_Batch(size = self.Tm, B = B) for var in self.vars_}
     def OLS(self, y, X):
         """
         Perform batched Ordinary Least Squares (OLS) regression using PyTorch.
