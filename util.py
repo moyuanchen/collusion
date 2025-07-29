@@ -185,6 +185,10 @@ def simulate_batch(
     sigma_u = config.sigma_u
     if type(continue_simulation) == str:
         log = torch.load(continue_simulation, weights_only=False)
+        informed_agents = log["agents"]["informed"]
+        # noise_agent = log["agents"]["noise"]
+        preferred_habitat_agent = log["agents"]["preferred_habitat"]
+        market_maker = log["agents"]["market_maker"]
         
         # v_hist = torch.zeros((B, T), dtype = torch.float16, device = device)
         p_hist = torch.zeros((B, T), dtype = torch.float16, device = device)
@@ -193,7 +197,17 @@ def simulate_batch(
         y_hist = torch.zeros((B, T), dtype = torch.float16, device = device)
         # u_hist = torch.zeros((B,T), dtype = torch.float16, device = device)
         u_path = torch.normal(config.v_bar, config.sigma_u, (B, T), device = device)
-        v_path = torch.randint(0, Nv, (B, T), device = device)
+        v_diff = torch.normal(0, config.sigma_v, (B, T ), device = device)
+        v_path = torch.cumsum(v_diff, dim = 1) + config.v_bar # B x T
+        def value_to_index(value, discrete_values):
+            """
+            Convert a continuous value to its nearest index in a discrete set.
+            value: Tensor of shape (B, T) containing continuous values.
+            discrete_values: Tensor of shape (Nv,) containing discrete values.
+            """
+            return torch.argmin(torch.abs(value.unsqueeze(-1) - discrete_values), dim=-1)
+
+        v_path = value_to_index(v_path, informed_agents.v_discrete) # B x T
         _p_init = torch.randint(0, Np, (B,), device = device)
         # _v_init = torch.randint(0, Nv, (B,), device = device)
         _v_init = v_path[:, 0]
@@ -201,10 +215,7 @@ def simulate_batch(
         profit_hist = torch.zeros((B, I, T), dtype = torch.float16, device = device)
         # t0 = 0
 
-        informed_agents = log["agents"]["informed"]
-        # noise_agent = log["agents"]["noise"]
-        preferred_habitat_agent = log["agents"]["preferred_habitat"]
-        market_maker = log["agents"]["market_maker"]
+       
 
         _state = log["last_state"]
 
