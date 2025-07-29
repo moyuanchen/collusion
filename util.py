@@ -228,7 +228,19 @@ def simulate_batch(
         y_hist = torch.zeros((B, T), dtype = torch.float16, device = device)
         # u_hist = torch.zeros((B,T), dtype = torch.float16, device = device)
         u_path = torch.normal(config.v_bar, config.sigma_u, (B, T), device = device)
-        v_path = torch.randint(0, Nv, (B, T), device = device)
+        v_diff = torch.normal(0, config.sigma_v, (B, T ), device = device)
+        v_path = torch.cumsum(v_diff, dim = 1) + config.v_bar # B x T
+        def value_to_index(value, discrete_values):
+            """
+            Convert a continuous value to its nearest index in a discrete set.
+            value: Tensor of shape (B, T) containing continuous values.
+            discrete_values: Tensor of shape (Nv,) containing discrete values.
+            """
+            return torch.argmin(torch.abs(value.unsqueeze(-1) - discrete_values), dim=-1)
+
+        v_path = value_to_index(v_path, informed_agents.v_discrete) # B x T
+        # v_path = torch.randint(0, Nv, (B, T), device = device)
+        
 
         _p_init = torch.randint(0, Np, (B,), device = device)
         # _v_init = torch.randint(0, Nv, (B,), device = device)
@@ -247,14 +259,15 @@ def simulate_batch(
     if save_path is None:
         raise ValueError("Save path required")
 
-    for t in range(T - 1):
+    for t in range(T):
         # if t % 1000 == 0:
         #     log_resource_usage(logfile=save_path + "resource_log.txt")
         yt = []
         _p, _v = informed_agents.p_discrete[_state[:, 0]], informed_agents.v_discrete[_state[:, 1]]
+        # _p, _v = informed_agents.p_discrete[_state[:, 0]], _state[:, 1] # B x I
         # v_hist[t+t0] = _v
-        print(_p)
-        print(_v)
+        # print(_p)
+        # print(_v)
         # print(_p.shape)
         p_hist[:, t] = _p
         # _x = []
@@ -291,7 +304,9 @@ def simulate_batch(
 
         z_hist[:, t] = zt
         market_maker.update(_v, _p, zt, yt_sum)
-        
+        if t == T - 1:
+            break
+        # print(t)
         vt = v_path[:, t + 1] # B,
         next_state = informed_agents.continuous_to_discrete(pt, vt)
         # for idx, agent in enumerate(informed_agents):
@@ -304,6 +319,8 @@ def simulate_batch(
 
 
         _state = next_state
+
+
     convergence = informed_agents.convergence_counter.min()
     log = {
         "v": v_path,
