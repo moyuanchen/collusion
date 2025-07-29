@@ -253,7 +253,8 @@ def simulate_batch(
         yt = []
         _p, _v = informed_agents.p_discrete[_state[:, 0]], informed_agents.v_discrete[_state[:, 1]]
         # v_hist[t+t0] = _v
-        # print(_p)
+        print(_p)
+        print(_v)
         # print(_p.shape)
         p_hist[:, t] = _p
         # _x = []
