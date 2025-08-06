@@ -36,31 +36,33 @@ if continue_simulation:
                                  continue_simulation=continue_simulation)
     
     # Remove older files if more than 10 exist
-    files = sorted(base_path.glob(f"sigma_u_{c.sigma_u}_part_*.pt"),
-                   key=lambda f: int(f.stem.split('_')[-1]))
-    if len(files) > 10:
-        for old_file in files[:-10]:
-            old_file.unlink()
+    # files = sorted(base_path.glob(f"sigma_u_{c.sigma_u}_part_*.pt"),
+    #                key=lambda f: int(f.stem.split('_')[-1]))
+    # if len(files) > 10:
+    #     for old_file in files[:-10]:
+    #         old_file.unlink()
 else:
     save = base_path / f"sigma_u_{c.sigma_u}_part_0.pt"
-    log, agents = simulate_batch(T=5000, B=100, config=c,
+    log, agents = simulate_batch(T=50, B=10, config=c,
                                  save_path=str(save))
     i = 1
     # Remove older files if more than 10 exist
-    files = sorted(base_path.glob(f"sigma_u_{c.sigma_u}_part_*.pt"),
-                   key=lambda f: int(f.stem.split('_')[-1]))
-    if len(files) > 10:
-        for old_file in files[:-10]:
-            old_file.unlink()
+    # files = sorted(base_path.glob(f"sigma_u_{c.sigma_u}_part_*.pt"),
+    #                key=lambda f: int(f.stem.split('_')[-1]))
+    # if len(files) > 10:
+    #     for old_file in files[:-10]:
+    #         old_file.unlink()
 
 while counter < convergence_threshold:
     new_save = base_path / f"sigma_u_{c.sigma_u}_part_{i}.pt"
-    log, agents = simulate_batch(T=50000, B=100, config=c,
+    log, agents = simulate_batch(T=50, B=10, config=c,
                                  save_path=str(new_save),
                                  continue_simulation=str(save))
     i += 1
     save = new_save
-    counter = log['convergence_counter']
+    counter = log['convergence_counter'].min()
+    # print(log['convergence_counter'])
+    # print(counter)
     print(f"Convergence counter: {counter}")
     
     # # Remove older files if more than 10 exist

@@ -134,7 +134,7 @@ def simulate(
         
 
         pt = market_maker.determine_price(yt_sum)
-        zt = preferred_habitat_agent.get_action(pt)
+        zt = preferred_habitat_agent.get_action(_p)
 
         z_hist[t+t0] = zt
         market_maker.update(_v, _p, zt, yt_sum)
@@ -197,17 +197,18 @@ def simulate_batch(
         y_hist = torch.zeros((B, T), dtype = torch.float16, device = device)
         # u_hist = torch.zeros((B,T), dtype = torch.float16, device = device)
         u_path = torch.normal(config.v_bar, config.sigma_u, (B, T), device = device)
-        v_diff = torch.normal(0, config.sigma_v, (B, T ), device = device)
-        v_path = torch.cumsum(v_diff, dim = 1) + config.v_bar # B x T
-        def value_to_index(value, discrete_values):
-            """
-            Convert a continuous value to its nearest index in a discrete set.
-            value: Tensor of shape (B, T) containing continuous values.
-            discrete_values: Tensor of shape (Nv,) containing discrete values.
-            """
-            return torch.argmin(torch.abs(value.unsqueeze(-1) - discrete_values), dim=-1)
+        # v_diff = torch.normal(0, config.sigma_v, (B, T ), device = device)
+        # v_path = torch.cumsum(v_diff, dim = 1) + config.v_bar # B x T
+        # def value_to_index(value, discrete_values):
+        #     """
+        #     Convert a continuous value to its nearest index in a discrete set.
+        #     value: Tensor of shape (B, T) containing continuous values.
+        #     discrete_values: Tensor of shape (Nv,) containing discrete values.
+        #     """
+        #     return torch.argmin(torch.abs(value.unsqueeze(-1) - discrete_values), dim=-1)
 
-        v_path = value_to_index(v_path, informed_agents.v_discrete) # B x T
+        # v_path = value_to_index(v_path, informed_agents.v_discrete) # B x T
+        v_path = torch.randint(0, Nv, (B, T), device = device)
         _p_init = torch.randint(0, Np, (B,), device = device)
         # _v_init = torch.randint(0, Nv, (B,), device = device)
         _v_init = v_path[:, 0]
@@ -220,6 +221,7 @@ def simulate_batch(
         _state = log["last_state"]
 
         convergence_counter = log['convergence_counter']
+        # informed_agents.convergence_counter = convergence_counter
         
     elif continue_simulation == False:
 
@@ -239,18 +241,18 @@ def simulate_batch(
         y_hist = torch.zeros((B, T), dtype = torch.float16, device = device)
         # u_hist = torch.zeros((B,T), dtype = torch.float16, device = device)
         u_path = torch.normal(config.v_bar, config.sigma_u, (B, T), device = device)
-        v_diff = torch.normal(0, config.sigma_v, (B, T ), device = device)
-        v_path = torch.cumsum(v_diff, dim = 1) + config.v_bar # B x T
-        def value_to_index(value, discrete_values):
-            """
-            Convert a continuous value to its nearest index in a discrete set.
-            value: Tensor of shape (B, T) containing continuous values.
-            discrete_values: Tensor of shape (Nv,) containing discrete values.
-            """
-            return torch.argmin(torch.abs(value.unsqueeze(-1) - discrete_values), dim=-1)
+        # v_diff = torch.normal(0, config.sigma_v, (B, T ), device = device)
+        # v_path = torch.cumsum(v_diff, dim = 1) + config.v_bar # B x T
+        # def value_to_index(value, discrete_values):
+        #     """
+        #     Convert a continuous value to its nearest index in a discrete set.
+        #     value: Tensor of shape (B, T) containing continuous values.
+        #     discrete_values: Tensor of shape (Nv,) containing discrete values.
+        #     """
+        #     return torch.argmin(torch.abs(value.unsqueeze(-1) - discrete_values), dim=-1)
 
-        v_path = value_to_index(v_path, informed_agents.v_discrete) # B x T
-        # v_path = torch.randint(0, Nv, (B, T), device = device)
+        # v_path = value_to_index(v_path, informed_agents.v_discrete) # B x T
+        v_path = torch.randint(0, Nv, (B, T), device = device)
         
 
         _p_init = torch.randint(0, Np, (B,), device = device)
@@ -275,6 +277,7 @@ def simulate_batch(
         #     log_resource_usage(logfile=save_path + "resource_log.txt")
         yt = []
         _p, _v = informed_agents.p_discrete[_state[:, 0]], informed_agents.v_discrete[_state[:, 1]]
+        # print(_p[0], _v[0])
         # _p, _v = informed_agents.p_discrete[_state[:, 0]], _state[:, 1] # B x I
         # v_hist[t+t0] = _v
         # print(_p)
@@ -301,17 +304,20 @@ def simulate_batch(
 
         #     x_hist[idx, t + t0] = xd
         action = informed_agents.get_action(_state)
+        # print(action)
         volume = informed_agents.x_discrete[action].sum(axis = -1)
+        # print(volume)
             # y_hist[idx, t + t0] = yt[-1]
         # ut = noise_agent.get_action()
         # u_hist[t+t0] = ut
         yt_sum = volume + u_path[:, t] # B
+        # print(yt_sum)
         y_hist[:, t] = yt_sum
         # print(yt_sum)
         
 
         pt = market_maker.determine_price(yt_sum) # B
-        zt = preferred_habitat_agent.get_action(pt)
+        zt = preferred_habitat_agent.get_action(_p)
 
         z_hist[:, t] = zt
         market_maker.update(_v, _p, zt, yt_sum)
@@ -332,7 +338,7 @@ def simulate_batch(
         _state = next_state
 
 
-    convergence = informed_agents.convergence_counter.min()
+    convergence = informed_agents.convergence_counter
     log = {
         "v": v_path,
         "p": p_hist,

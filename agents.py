@@ -375,6 +375,7 @@ class InformedAgents_Batch:
         epsilon = self.get_epsilon(state) # B x I
         # print(epsilon.shape)
         greedy = torch.randn(self.B, self.I) > epsilon
+        # print(greedy)
         optimal_action = self.Q.get_best_action(state) # B x I
 
         self.check_convergence(state, optimal_action)
@@ -498,19 +499,30 @@ class AdaptiveMarketMaker_Batch:
         y = y.get()  # B x Tm
         X = X.get()  # B x Tm
 
-        B, T = X.shape
+        B, _ = X.shape
+        coef_batch = torch.zeros((2, B), dtype = torch.float32)  # 2 x B for slope and intercept
+        for b in range(B):
+            _X = np.vstack([X[b], np.ones(len(X[b]))]).T
 
-        # Add intercept: (B x T x 2) where last dim is [x_t, 1]
-        X_aug = torch.stack([X, torch.ones_like(X)], dim=2)  # B x T x 2
+            coef_, _, _, _ = np.linalg.lstsq(_X, y[b], rcond=None)
+            coef_batch[:, b] = torch.tensor(coef_, dtype=torch.float32)
+        # print(coef_batch.shape)
+        # print(coef_batch)
+        return coef_batch # 2 x B
 
-        # Reshape y to (B x T x 1)
-        y = y.unsqueeze(-1)  # B x T x 1
+        # B, T = X.shape
 
-        # Batched least squares using pseudo-inverse: beta = (X^T X)^-1 X^T y
-        X_T = X_aug.transpose(1, 2)  # B x 2 x T
-        beta = torch.linalg.pinv(X_T @ X_aug) @ X_T @ y  # B x 2 x 1
+        # # Add intercept: (B x T x 2) where last dim is [x_t, 1]
+        # X_aug = torch.stack([X, torch.ones_like(X)], dim=2)  # B x T x 2
 
-        return beta.squeeze(-1)  # B x 2
+        # # Reshape y to (B x T x 1)
+        # y = y.unsqueeze(-1)  # B x T x 1
+
+        # # Batched least squares using pseudo-inverse: beta = (X^T X)^-1 X^T y
+        # X_T = X_aug.transpose(1, 2)  # B x 2 x T
+        # beta = torch.linalg.pinv(X_T @ X_aug) @ X_T @ y  # B x 2 x 1
+
+        # return beta.squeeze(-1)  # B x 2
 
     
     def determine_price(self, yt):
@@ -522,13 +534,14 @@ class AdaptiveMarketMaker_Batch:
         float: The determined price based on the input `yt`.
         """
 
-        xi_1, _ = self.OLS(self.historical_data['z'], self.historical_data['p']).unbind(dim=-1) # B x 2 slope intercept
-        gamma_1, gamma_0 = self.OLS(self.historical_data['v'], self.historical_data['y']).unbind(dim=-1) # B x2
-        lambda_ = (xi_1 + self.theta * gamma_1) / (xi_1**2 + self.theta) # B x 1
+        xi_1, _ = self.OLS(self.historical_data['z'], self.historical_data['p']) # B, _
+        # print(xi_1.shape)
+        gamma_1, gamma_0 = self.OLS(self.historical_data['v'], self.historical_data['y']) # B, 2
+        lambda_ = (xi_1 + self.theta * gamma_1) / (xi_1**2 + self.theta) # B, 1
         # print(lambda_)
-        price = gamma_0 + lambda_ * yt # B x 1 + B x 1 * scalar = B x 1
-        return price.squeeze(-1) # B x 1 -> B
-    
+        price = gamma_0 + lambda_ * yt # B, 1 + B, 1 * scalar = B, 1
+        return price
+
     def update(self, vt, pt, zt, yt):
         """
         Updates the historical data with the given batched values.
