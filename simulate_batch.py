@@ -43,7 +43,7 @@ if continue_simulation:
     #         old_file.unlink()
 else:
     save = base_path / f"sigma_u_{c.sigma_u}_part_0.pt"
-    log, agents = simulate_batch(T=50, B=10, config=c,
+    log, agents = simulate_batch(T=50000, B=100, config=c,
                                  save_path=str(save))
     i = 1
     # Remove older files if more than 10 exist
@@ -55,7 +55,7 @@ else:
 
 while counter < convergence_threshold:
     new_save = base_path / f"sigma_u_{c.sigma_u}_part_{i}.pt"
-    log, agents = simulate_batch(T=50, B=10, config=c,
+    log, agents = simulate_batch(T=500000, B=100, config=c,
                                  save_path=str(new_save),
                                  continue_simulation=str(save))
     i += 1
